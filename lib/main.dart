@@ -121,10 +121,6 @@ class _SwipeDeckViewState extends State<SwipeDeckView> {
           Expanded(
             child: LayoutBuilder(
               builder: (context, constraints) {
-                if (_isDeckFinished) {
-                  return const _EmptyDeckPlaceholder();
-                }
-
                 final availableWidth = constraints.maxWidth.isFinite
                     ? constraints.maxWidth
                     : 420.0;
@@ -140,40 +136,48 @@ class _SwipeDeckViewState extends State<SwipeDeckView> {
                   child: SizedBox(
                     width: deckWidth,
                     height: deckHeight,
-                    child: CardSwiper(
-                      controller: _swiperController,
-                      cardsCount: _profiles.length,
-                      isLoop: false,
-                      padding: EdgeInsets.zero,
-                      numberOfCardsDisplayed:
-                          _profiles.length > 1 ? 2 : _profiles.length,
-                      allowedSwipeDirection:
-                          const AllowedSwipeDirection.only(
-                        left: true,
-                        right: true,
-                        up: true,
-                      ),
-                      onSwipe: _handleSwipe,
-                      onUndo: (
-                        int? previousIndex,
-                        int currentIndex,
-                        CardSwiperDirection direction,
-                      ) {
-                        setState(() {
-                          _isDeckFinished = false;
-                        });
-                        return true;
-                      },
-                      onEnd: () => setState(() => _isDeckFinished = true),
-                      cardBuilder: (
-                        context,
-                        index,
-                        percentThresholdX,
-                        percentThresholdY,
-                      ) {
-                        final profile = _profiles[index];
-                        return _ProfileCard(profile: profile);
-                      },
+                    child: Stack(
+                      alignment: Alignment.center,
+                      children: [
+                        CardSwiper(
+                          controller: _swiperController,
+                          cardsCount: _profiles.length,
+                          isLoop: false,
+                          padding: EdgeInsets.zero,
+                          numberOfCardsDisplayed:
+                              _profiles.length > 1 ? 2 : _profiles.length,
+                          allowedSwipeDirection:
+                              const AllowedSwipeDirection.only(
+                            left: true,
+                            right: true,
+                            up: true,
+                          ),
+                          onSwipe: _handleSwipe,
+                          onUndo: (
+                            int? previousIndex,
+                            int currentIndex,
+                            CardSwiperDirection direction,
+                          ) {
+                            setState(() {
+                              _isDeckFinished = false;
+                            });
+                            return true;
+                          },
+                          onEnd: () =>
+                              setState(() => _isDeckFinished = true),
+                          cardBuilder: (
+                            context,
+                            index,
+                            percentThresholdX,
+                            percentThresholdY,
+                          ) {
+                            final profile = _profiles[index];
+                            return _ProfileCard(profile: profile);
+                          },
+                        ),
+                        if (_isDeckFinished)
+                          const _EmptyDeckPlaceholder(),
+                      ],
                     ),
                   ),
                 );
