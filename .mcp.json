@@ -1,0 +1,35 @@
+{
+  "mcpServers": {
+    "brave-search-mcp-server Docs": {
+      "command": "npx",
+      "args": [
+        "mcp-remote",
+        "https://gitmcp.io/brave/brave-search-mcp-server"
+      ]
+    },
+    "brave-search": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@brave/brave-search-mcp-server"
+      ],
+      "env": {
+        "BRAVE_API_KEY": "BSAB5xzprS1h423CfjRkAIYbEmjB8xn"
+      }
+    },
+    "memory": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-memory"
+      ]
+    },
+    "flutter_card_swiper Docs": {
+      "command": "npx",
+      "args": [
+        "mcp-remote",
+        "https://gitmcp.io/ricardodalarme/flutter_card_swiper"
+      ]
+    }
+  }
+}
