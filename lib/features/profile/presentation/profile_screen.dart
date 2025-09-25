@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:gonder/features/preferences/presentation/settings_bottom_sheet.dart';
 import 'package:gonder/features/profile/data/profile_form_data.dart';
 import 'package:gonder/features/profile/data/profile_store.dart';
 
@@ -131,6 +132,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
       appBar: AppBar(
         title: const Text('Your Profile'),
         actions: [
+          if (!_isEditing)
+            IconButton(
+              icon: const Icon(Icons.tune),
+              tooltip: 'Discovery settings',
+              onPressed: () => SettingsBottomSheet.show(context),
+            ),
           if (_isEditing)
             TextButton(
               onPressed: _isSaving ? null : _toggleEditing,

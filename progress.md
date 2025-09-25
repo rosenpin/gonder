@@ -19,3 +19,8 @@
 - Completed: Rebuilt chat UI to mimic Tinder layout with gradient header, match banner, stylized bubbles, avatar/timestamp logic, and modern composer.
 - Issues: Kept legacy `chatview` dependency in pubspec for now; flag for removal once data models land.
 - Next Steps: Implement discovery settings bottom sheet (Phase 3).
+
+## 2025-09-25 — Agent: Codex (Phase 3)
+- Completed: Added reusable settings bottom sheet with sliders, toggles, and location editor; wired access points from Discover and Profile screens and persisted selections via shared store.
+- Issues: Settings currently persist in-memory only; flag to connect to real storage during model/backend phases.
+- Next Steps: Begin Phase 4 domain model refactor.
