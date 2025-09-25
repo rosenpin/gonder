@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_card_swiper/flutter_card_swiper.dart';
+import 'package:gonder/data/repositories/app_repositories.dart';
 import 'package:gonder/features/preferences/presentation/settings_bottom_sheet.dart';
+import 'package:gonder/models/user_profile.dart';
 
 class DiscoverPage extends StatefulWidget {
   const DiscoverPage({super.key});
@@ -11,18 +13,25 @@ class DiscoverPage extends StatefulWidget {
 
 class _DiscoverPageState extends State<DiscoverPage> {
   final CardSwiperController _swiperController = CardSwiperController();
-  final List<_ProfileCardData> _profiles = const [
-    _ProfileCardData(name: 'David', age: 28, imagePath: 'assets/1.png'),
-    _ProfileCardData(name: 'Esther', age: 27, imagePath: 'assets/2.png'),
-    _ProfileCardData(name: 'Miriam', age: 29, imagePath: 'assets/3.png'),
-    _ProfileCardData(name: 'Solomon', age: 26, imagePath: 'assets/4.png'),
-    _ProfileCardData(name: 'Noah', age: 31, imagePath: 'assets/5.png'),
-    _ProfileCardData(name: 'Deborah', age: 25, imagePath: 'assets/6.png'),
-    _ProfileCardData(name: 'Josiah', age: 30, imagePath: 'assets/7.png'),
-    _ProfileCardData(name: 'Ruth', age: 27, imagePath: 'assets/8.png'),
-  ];
-
+  List<UserProfile> _profiles = const [];
+  bool _isLoading = true;
   bool _isDeckFinished = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadProfiles();
+  }
+
+  Future<void> _loadProfiles() async {
+    final results = await discoveryRepository.fetchNearbyProfiles();
+    if (!mounted) return;
+    setState(() {
+      _profiles = results;
+      _isLoading = false;
+      _isDeckFinished = results.isEmpty;
+    });
+  }
 
   void _triggerSwipe(CardSwiperDirection direction) {
     if (_isDeckFinished) return;
@@ -48,6 +57,24 @@ class _DiscoverPageState extends State<DiscoverPage> {
 
   @override
   Widget build(BuildContext context) {
+    if (_isLoading) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
+    if (_profiles.isEmpty) {
+      return Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 48),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: const [
+            _EmptyDeckPlaceholder(),
+            SizedBox(height: 16),
+            Text('Check back later for more matches.'),
+          ],
+        ),
+      );
+    }
+
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
       child: Column(
@@ -150,25 +177,15 @@ class _DiscoverPageState extends State<DiscoverPage> {
   }
 }
 
-class _ProfileCardData {
-  const _ProfileCardData({
-    required this.name,
-    required this.age,
-    required this.imagePath,
-  });
-
-  final String name;
-  final int age;
-  final String imagePath;
-}
-
 class _ProfileCard extends StatelessWidget {
   const _ProfileCard({required this.profile});
 
-  final _ProfileCardData profile;
+  final UserProfile profile;
 
   @override
   Widget build(BuildContext context) {
+    final photo = profile.photos.isNotEmpty ? profile.photos.first : null;
+
     return Material(
       elevation: 8,
       borderRadius: BorderRadius.circular(24),
@@ -176,7 +193,10 @@ class _ProfileCard extends StatelessWidget {
       child: Stack(
         fit: StackFit.expand,
         children: [
-          Image.asset(profile.imagePath, fit: BoxFit.cover),
+          if (photo != null)
+            Image.asset(photo, fit: BoxFit.cover)
+          else
+            Container(color: Colors.grey.shade300),
           const DecoratedBox(
             decoration: BoxDecoration(
               gradient: LinearGradient(
@@ -199,7 +219,7 @@ class _ProfileCard extends StatelessWidget {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Text(
-                      profile.name,
+                      profile.displayName,
                       style: Theme.of(context).textTheme.headlineSmall
                           ?.copyWith(
                             color: Colors.white,
@@ -207,7 +227,7 @@ class _ProfileCard extends StatelessWidget {
                           ),
                     ),
                     Text(
-                      '${profile.age} years old',
+                      '${profile.age} • ${profile.city}',
                       style: Theme.of(
                         context,
                       ).textTheme.bodyMedium?.copyWith(color: Colors.white70),

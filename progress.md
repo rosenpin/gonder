@@ -24,3 +24,8 @@
 - Completed: Added reusable settings bottom sheet with sliders, toggles, and location editor; wired access points from Discover and Profile screens and persisted selections via shared store.
 - Issues: Settings currently persist in-memory only; flag to connect to real storage during model/backend phases.
 - Next Steps: Begin Phase 4 domain model refactor.
+
+## 2025-09-25 — Agent: Codex (Phase 4)
+- Completed: Introduced domain models and repositories, refactored discover, profile, chat, and settings flows to consume shared data layer, removed legacy in-memory stores.
+- Issues: Hard-coded user and conversation IDs remain until auth and backend integration in Phase 5.
+- Next Steps: Build FastAPI mock backend and wire repositories to HTTP layer (Phase 5).

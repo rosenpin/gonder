@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:gonder/data/repositories/app_repositories.dart';
+import 'package:gonder/models/conversation.dart';
+import 'package:gonder/models/message.dart';
 
 class ChatPage extends StatefulWidget {
   const ChatPage({super.key});
@@ -8,42 +11,28 @@ class ChatPage extends StatefulWidget {
 }
 
 class _ChatPageState extends State<ChatPage> {
-  final List<ChatMessage> _messages = [
-    ChatMessage(
-      id: 'm1',
-      text: "You're really pretty!",
-      timestamp: DateTime.now().subtract(const Duration(hours: 2, minutes: 3)),
-      isMine: true,
-    ),
-    ChatMessage(
-      id: 'm2',
-      text: 'Thank you',
-      timestamp: DateTime.now().subtract(const Duration(hours: 2)),
-      isMine: false,
-    ),
-    ChatMessage(
-      id: 'm3',
-      text: 'Your really handsome!!',
-      timestamp: DateTime.now().subtract(const Duration(hours: 2, minutes: 0)),
-      isMine: false,
-    ),
-    ChatMessage(
-      id: 'm4',
-      text: 'Thanks :)\nWanna hang out sometime? Or go out',
-      timestamp: DateTime.now().subtract(const Duration(hours: 1, minutes: 58)),
-      isMine: true,
-    ),
-    ChatMessage(
-      id: 'm5',
-      text: "Yes I'd love too",
-      timestamp: DateTime.now().subtract(const Duration(hours: 1, minutes: 55)),
-      isMine: false,
-    ),
-  ];
-
+  Conversation? _conversation;
+  bool _isSending = false;
   final TextEditingController _composerController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
   final DateTime _matchDate = DateTime(2024, 4, 29);
+
+  static const String _conversationId = 'conversation-1';
+  static const String _currentUserId = 'user-1';
+
+  @override
+  void initState() {
+    super.initState();
+    _loadConversation();
+  }
+
+  Future<void> _loadConversation() async {
+    final result = await conversationRepository.fetchConversation(
+      _conversationId,
+    );
+    if (!mounted) return;
+    setState(() => _conversation = result);
+  }
 
   @override
   void dispose() {
@@ -52,20 +41,40 @@ class _ChatPageState extends State<ChatPage> {
     super.dispose();
   }
 
-  void _handleSend() {
+  Future<void> _handleSend() async {
+    final conversation = _conversation;
+    if (conversation == null) return;
     final text = _composerController.text.trim();
     if (text.isEmpty) return;
-    final message = ChatMessage(
+
+    final message = MessageModel(
       id: DateTime.now().millisecondsSinceEpoch.toString(),
-      text: text,
-      timestamp: DateTime.now(),
-      isMine: true,
+      senderId: _currentUserId,
+      body: text,
+      sentAt: DateTime.now(),
+      status: MessageStatus.sending,
     );
+
     setState(() {
-      _messages.add(message);
+      _isSending = true;
+      _conversation = conversation.copyWith(
+        messages: [...conversation.messages, message],
+      );
+      _composerController.clear();
     });
-    _composerController.clear();
-    Future.delayed(const Duration(milliseconds: 50), () {
+
+    final updated = await conversationRepository.sendMessage(
+      conversationId: _conversationId,
+      message: message.copyWith(status: MessageStatus.sent),
+    );
+
+    if (!mounted) return;
+    setState(() {
+      _conversation = updated;
+      _isSending = false;
+    });
+
+    Future.delayed(const Duration(milliseconds: 80), () {
       if (!_scrollController.hasClients) return;
       _scrollController.animateTo(
         _scrollController.position.maxScrollExtent,
@@ -77,7 +86,11 @@ class _ChatPageState extends State<ChatPage> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
+    final conversation = _conversation;
+    if (conversation == null) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
     return Scaffold(
       backgroundColor: Colors.grey.shade100,
       appBar: PreferredSize(
@@ -92,19 +105,21 @@ class _ChatPageState extends State<ChatPage> {
             child: ListView.separated(
               controller: _scrollController,
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
-              itemCount: _messages.length,
+              itemCount: conversation.messages.length,
               separatorBuilder: (context, index) => const SizedBox(height: 12),
               itemBuilder: (context, index) {
-                final message = _messages[index];
-                final next = index + 1 < _messages.length
-                    ? _messages[index + 1]
+                final message = conversation.messages[index];
+                final next = index + 1 < conversation.messages.length
+                    ? conversation.messages[index + 1]
                     : null;
                 final showAvatar =
-                    !message.isMine && (next == null || next.isMine);
+                    message.senderId != _currentUserId &&
+                    (next == null || next.senderId == _currentUserId);
                 final showTimestamp =
-                    next == null || next.isMine != message.isMine;
+                    next == null || next.senderId == _currentUserId;
                 return _MessageBubble(
                   message: message,
+                  isMine: message.senderId == _currentUserId,
                   showAvatar: showAvatar,
                   showTimestamp: showTimestamp,
                 );
@@ -143,8 +158,8 @@ class _ChatPageState extends State<ChatPage> {
                   const SizedBox(width: 12),
                   _ComposerIconButton(
                     icon: Icons.send,
-                    onPressed: _handleSend,
-                    backgroundColor: theme.colorScheme.primary,
+                    onPressed: _isSending ? null : _handleSend,
+                    backgroundColor: Theme.of(context).colorScheme.primary,
                     foregroundColor: Colors.white,
                   ),
                 ],
@@ -155,20 +170,6 @@ class _ChatPageState extends State<ChatPage> {
       ),
     );
   }
-}
-
-class ChatMessage {
-  const ChatMessage({
-    required this.id,
-    required this.text,
-    required this.timestamp,
-    required this.isMine,
-  });
-
-  final String id;
-  final String text;
-  final DateTime timestamp;
-  final bool isMine;
 }
 
 class _ChatHeader extends StatelessWidget {
@@ -311,29 +312,29 @@ class _MatchBanner extends StatelessWidget {
 class _MessageBubble extends StatelessWidget {
   const _MessageBubble({
     required this.message,
+    required this.isMine,
     required this.showAvatar,
     required this.showTimestamp,
   });
 
-  final ChatMessage message;
+  final MessageModel message;
+  final bool isMine;
   final bool showAvatar;
   final bool showTimestamp;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final alignment = message.isMine
+    final alignment = isMine
         ? CrossAxisAlignment.end
         : CrossAxisAlignment.start;
-    final bubbleColor = message.isMine
-        ? const Color(0xFF3FB7FF)
-        : Colors.grey.shade200;
-    final textColor = message.isMine ? Colors.white : Colors.black87;
+    final bubbleColor = isMine ? const Color(0xFF3FB7FF) : Colors.grey.shade200;
+    final textColor = isMine ? Colors.white : Colors.black87;
     final borderRadius = BorderRadius.only(
       topLeft: const Radius.circular(28),
       topRight: const Radius.circular(28),
-      bottomLeft: Radius.circular(message.isMine ? 24 : 6),
-      bottomRight: Radius.circular(message.isMine ? 6 : 24),
+      bottomLeft: Radius.circular(isMine ? 24 : 6),
+      bottomRight: Radius.circular(isMine ? 6 : 24),
     );
 
     return Column(
@@ -341,11 +342,11 @@ class _MessageBubble extends StatelessWidget {
       children: [
         Row(
           crossAxisAlignment: CrossAxisAlignment.end,
-          mainAxisAlignment: message.isMine
+          mainAxisAlignment: isMine
               ? MainAxisAlignment.end
               : MainAxisAlignment.start,
           children: [
-            if (!message.isMine)
+            if (!isMine)
               Opacity(
                 opacity: showAvatar ? 1 : 0,
                 child: const CircleAvatar(
@@ -353,7 +354,7 @@ class _MessageBubble extends StatelessWidget {
                   backgroundImage: AssetImage('assets/2.png'),
                 ),
               ),
-            if (!message.isMine) const SizedBox(width: 8),
+            if (!isMine) const SizedBox(width: 8),
             Flexible(
               child: Container(
                 padding: const EdgeInsets.symmetric(
@@ -365,7 +366,7 @@ class _MessageBubble extends StatelessWidget {
                   borderRadius: borderRadius,
                 ),
                 child: Text(
-                  message.text,
+                  message.body,
                   style: theme.textTheme.bodyMedium?.copyWith(
                     color: textColor,
                     height: 1.4,
@@ -373,15 +374,19 @@ class _MessageBubble extends StatelessWidget {
                 ),
               ),
             ),
-            if (message.isMine) const SizedBox(width: 8),
-            if (message.isMine)
-              const Icon(Icons.check, size: 18, color: Color(0xFF3FB7FF)),
+            if (isMine) const SizedBox(width: 8),
+            if (isMine)
+              Icon(
+                Icons.check,
+                size: 18,
+                color: isMine ? const Color(0xFF3FB7FF) : Colors.transparent,
+              ),
           ],
         ),
         if (showTimestamp) ...[
           const SizedBox(height: 6),
           Text(
-            _formatTimestamp(message.timestamp),
+            _formatTimestamp(message.sentAt),
             style: theme.textTheme.labelSmall?.copyWith(
               color: Colors.grey.shade600,
             ),
@@ -408,7 +413,7 @@ class _ComposerIconButton extends StatelessWidget {
   });
 
   final IconData icon;
-  final VoidCallback onPressed;
+  final VoidCallback? onPressed;
   final Color? backgroundColor;
   final Color? foregroundColor;
 

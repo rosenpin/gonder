@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:gonder/features/preferences/data/preferences_store.dart';
-import 'package:gonder/features/profile/data/profile_form_data.dart';
+import 'package:gonder/data/repositories/app_repositories.dart';
+import 'package:gonder/models/preferences.dart';
+import 'package:gonder/models/user_profile.dart';
 
 class SettingsBottomSheet extends StatefulWidget {
   const SettingsBottomSheet({super.key});
@@ -26,20 +27,22 @@ class SettingsBottomSheet extends StatefulWidget {
 class _SettingsBottomSheetState extends State<SettingsBottomSheet> {
   PreferenceSettings? _settings;
   bool _isSaving = false;
-  late final TextEditingController _cityController;
+  final TextEditingController _cityController = TextEditingController();
+
+  static const String _userId = 'user-1';
 
   @override
   void initState() {
     super.initState();
-    _cityController = TextEditingController();
     _load();
   }
 
   Future<void> _load() async {
-    final result = await preferencesStore.load();
+    final loaded = await preferencesRepository.load(_userId);
+    if (!mounted) return;
     setState(() {
-      _settings = result;
-      _cityController.text = result.city;
+      _settings = loaded;
+      _cityController.text = loaded.city;
     });
   }
 
@@ -50,12 +53,12 @@ class _SettingsBottomSheetState extends State<SettingsBottomSheet> {
   }
 
   void _updateSettings(
-    PreferenceSettings Function(PreferenceSettings) updater,
+    PreferenceSettings Function(PreferenceSettings) transform,
   ) {
     final current = _settings;
     if (current == null) return;
     setState(() {
-      _settings = updater(current);
+      _settings = transform(current);
     });
   }
 
@@ -63,8 +66,8 @@ class _SettingsBottomSheetState extends State<SettingsBottomSheet> {
     final current = _settings;
     if (current == null) return;
     setState(() => _isSaving = true);
-    final next = current.copyWith(city: _cityController.text.trim());
-    await preferencesStore.save(next);
+    final persisted = current.copyWith(city: _cityController.text.trim());
+    await preferencesRepository.save(persisted);
     if (!mounted) return;
     setState(() => _isSaving = false);
     Navigator.of(context).pop();
@@ -74,7 +77,7 @@ class _SettingsBottomSheetState extends State<SettingsBottomSheet> {
   }
 
   void _reset() {
-    final defaults = defaultPreferences();
+    final defaults = _defaultSettings();
     setState(() {
       _settings = defaults;
       _cityController.text = defaults.city;
@@ -84,14 +87,11 @@ class _SettingsBottomSheetState extends State<SettingsBottomSheet> {
   @override
   Widget build(BuildContext context) {
     final settings = _settings;
-    final theme = Theme.of(context);
-
     if (settings == null) {
       return const Center(child: CircularProgressIndicator());
     }
 
-    final chips = GenderIdentity.values;
-
+    final theme = Theme.of(context);
     return Container(
       decoration: const BoxDecoration(
         color: Colors.white,
@@ -158,9 +158,9 @@ class _SettingsBottomSheetState extends State<SettingsBottomSheet> {
                   spacing: 8,
                   runSpacing: 8,
                   children: [
-                    for (final gender in chips)
+                    for (final gender in GenderIdentity.values)
                       FilterChip(
-                        label: Text(_genderLabel(gender)),
+                        label: Text(gender.label),
                         selected: settings.selectedGenders.contains(gender),
                         onSelected: (selected) => _updateSettings((current) {
                           final next = Set<GenderIdentity>.from(
@@ -243,16 +243,16 @@ class _SettingsBottomSheetState extends State<SettingsBottomSheet> {
     );
   }
 
-  String _genderLabel(GenderIdentity gender) {
-    switch (gender) {
-      case GenderIdentity.female:
-        return 'Women';
-      case GenderIdentity.male:
-        return 'Men';
-      case GenderIdentity.nonBinary:
-        return 'Non-binary';
-      case GenderIdentity.other:
-        return 'Everyone';
-    }
+  PreferenceSettings _defaultSettings() {
+    return PreferenceSettings(
+      userId: _userId,
+      ageRange: const RangeValues(24, 34),
+      maxDistanceKm: 25,
+      selectedGenders: {GenderIdentity.female, GenderIdentity.male},
+      city: 'San Francisco, CA',
+      useDeviceLocation: false,
+      notificationsEnabled: true,
+      newMatchAlerts: true,
+    );
   }
 }
