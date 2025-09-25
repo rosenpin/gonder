@@ -180,31 +180,21 @@ class _ChatHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final formattedTime = TimeOfDay.now().format(context);
     return AppBar(
       automaticallyImplyLeading: false,
-      flexibleSpace: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            colors: [Color(0xFFFF5D8F), Color(0xFFFF926B)],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
-        ),
-      ),
+      backgroundColor: theme.colorScheme.primary.withValues(alpha: 0.92),
       foregroundColor: Colors.white,
-      backgroundColor: Colors.transparent,
       title: Padding(
-        padding: const EdgeInsets.only(top: 12),
+        padding: const EdgeInsets.only(top: 8, bottom: 4),
         child: Row(
           children: [
             IconButton(
               icon: const Icon(Icons.arrow_back_ios_new_rounded),
               onPressed: () {},
             ),
-            const SizedBox(width: 4),
+            const SizedBox(width: 6),
             const CircleAvatar(
-              radius: 24,
+              radius: 22,
               backgroundImage: AssetImage('assets/2.png'),
             ),
             const SizedBox(width: 12),
@@ -212,43 +202,33 @@ class _ChatHeader extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Text(
-                  'Angel',
-                  style: theme.textTheme.titleLarge?.copyWith(
-                    color: Colors.white,
-                    fontWeight: FontWeight.w600,
-                  ),
+                Row(
+                  children: [
+                    Text(
+                      'Angel',
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const SizedBox(width: 6),
+                    const Text('🐐', style: TextStyle(fontSize: 18)),
+                  ],
                 ),
                 Text(
-                  'You matched on ${_formatMatchDate(matchDate)}',
+                  'Matched on ${_formatMatchDate(matchDate)}',
                   style: theme.textTheme.bodySmall?.copyWith(
-                    color: Colors.white70,
+                    color: Colors.white.withValues(alpha: 0.78),
                     letterSpacing: 0.2,
                   ),
                 ),
               ],
             ),
             const Spacer(),
-            IconButton(icon: const Icon(Icons.flag_outlined), onPressed: () {}),
-            Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Text(
-                  formattedTime,
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: Colors.white70,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Container(
-                  width: 6,
-                  height: 6,
-                  decoration: const BoxDecoration(
-                    color: Colors.white70,
-                    shape: BoxShape.circle,
-                  ),
-                ),
-              ],
+            IconButton(
+              icon: const Icon(Icons.flag_outlined),
+              tooltip: 'Report',
+              onPressed: () {},
             ),
           ],
         ),
@@ -287,21 +267,29 @@ class _MatchBanner extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
+    final primary = Theme.of(context).colorScheme.primary;
     return Container(
       width: double.infinity,
       color: Colors.white,
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           Text(
-            'YOU MATCHED WITH ANGEL ON ${_ChatHeader._formatMatchDate(matchDate).toUpperCase()}',
-            style: textTheme.labelSmall?.copyWith(
-              color: Colors.pinkAccent,
-              fontWeight: FontWeight.w600,
-              letterSpacing: 1.1,
+            'You matched with Angel on ${_ChatHeader._formatMatchDate(matchDate)}',
+            style: textTheme.bodySmall?.copyWith(
+              color: Colors.grey.shade600,
+              letterSpacing: 0.4,
             ),
             textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 6),
+          Text(
+            'Keep it classy, goat friend 🐐',
+            style: textTheme.labelSmall?.copyWith(
+              color: primary,
+              fontWeight: FontWeight.w600,
+            ),
           ),
         ],
       ),
@@ -328,13 +316,13 @@ class _MessageBubble extends StatelessWidget {
     final alignment = isMine
         ? CrossAxisAlignment.end
         : CrossAxisAlignment.start;
-    final bubbleColor = isMine ? const Color(0xFF3FB7FF) : Colors.grey.shade200;
+    final bubbleColor = isMine ? theme.colorScheme.primary : Colors.white;
     final textColor = isMine ? Colors.white : Colors.black87;
     final borderRadius = BorderRadius.only(
-      topLeft: const Radius.circular(28),
-      topRight: const Radius.circular(28),
-      bottomLeft: Radius.circular(isMine ? 24 : 6),
-      bottomRight: Radius.circular(isMine ? 6 : 24),
+      topLeft: const Radius.circular(24),
+      topRight: const Radius.circular(24),
+      bottomLeft: Radius.circular(isMine ? 18 : 12),
+      bottomRight: Radius.circular(isMine ? 12 : 18),
     );
 
     return Column(
