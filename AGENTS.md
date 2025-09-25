@@ -1,5 +1,9 @@
 # Repository Guidelines
 
+## Documentation & Checkpoints
+
+Always review `PRD.md` and `plan.md` before coding; they define current scope, sequencing, and quality gates. Record every meaningful milestone, blocker, or deviation in `progress.md` as soon as it happens so the next agent can pick up with full context.
+
 ## Project Structure & Module Organization
 
 The Flutter entrypoint lives in `lib/main.dart`, which wires navigation, chat UI, and any app-wide providers. UI widgets and services should be split into new files under `lib/` to keep `main.dart` lightweight. Platform scaffolding resides in `android/`, `ios/`, and `web/`; do not edit generated build outputs in `build/`. Shared media and configuration artifacts belong in `assets/`, and every addition must be declared in `pubspec.yaml` to ship with the app.
