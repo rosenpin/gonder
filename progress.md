@@ -29,3 +29,8 @@
 - Completed: Introduced domain models and repositories, refactored discover, profile, chat, and settings flows to consume shared data layer, removed legacy in-memory stores.
 - Issues: Hard-coded user and conversation IDs remain until auth and backend integration in Phase 5.
 - Next Steps: Build FastAPI mock backend and wire repositories to HTTP layer (Phase 5).
+
+## 2025-09-25 — Agent: Codex (Phase 5)
+- Completed: Simplified chat header/banner and bubble styling to align with app aesthetic and goat branding.
+- Issues: None.
+- Next Steps: Build FastAPI mock backend and integrate repositories.
