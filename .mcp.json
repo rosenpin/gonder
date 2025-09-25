@@ -17,13 +17,6 @@
         "BRAVE_API_KEY": "BSAB5xzprS1h423CfjRkAIYbEmjB8xn"
       }
     },
-    "memory": {
-      "command": "npx",
-      "args": [
-        "-y",
-        "@modelcontextprotocol/server-memory"
-      ]
-    },
     "flutter_card_swiper Docs": {
       "command": "npx",
       "args": [

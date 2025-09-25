@@ -1,0 +1,18 @@
+[mcpServers."brave-search-mcp-server Docs"]
+command = "npx"
+args = ["mcp-remote", "https://gitmcp.io/brave/brave-search-mcp-server"]
+
+[mcpServers."brave-search"]
+command = "npx"
+args = ["-y", "@brave/brave-search-mcp-server"]
+
+[mcpServers."brave-search".env]
+BRAVE_API_KEY = "BSAB5xzprS1h423CfjRkAIYbEmjB8xn"
+
+[mcpServers."flutter_card_swiper Docs"]
+command = "npx"
+args = ["mcp-remote", "https://gitmcp.io/ricardodalarme/flutter_card_swiper"]
+
+[mcpServers."chatview Docs"]
+command = "npx"
+args = ["mcp-remote", "https://gitmcp.io/SimformSolutionsPvtLtd/chatview"]
