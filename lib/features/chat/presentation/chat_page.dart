@@ -316,13 +316,13 @@ class _MessageBubble extends StatelessWidget {
     final alignment = isMine
         ? CrossAxisAlignment.end
         : CrossAxisAlignment.start;
-    final bubbleColor = isMine ? const Color(0xFF3FB7FF) : Colors.grey.shade200;
+    final bubbleColor = isMine ? theme.colorScheme.primary : Colors.white;
     final textColor = isMine ? Colors.white : Colors.black87;
     final borderRadius = BorderRadius.only(
-      topLeft: const Radius.circular(28),
-      topRight: const Radius.circular(28),
-      bottomLeft: Radius.circular(isMine ? 24 : 6),
-      bottomRight: Radius.circular(isMine ? 6 : 24),
+      topLeft: const Radius.circular(24),
+      topRight: const Radius.circular(24),
+      bottomLeft: Radius.circular(isMine ? 18 : 12),
+      bottomRight: Radius.circular(isMine ? 12 : 18),
     );
 
     return Column(
