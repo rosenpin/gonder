@@ -10,6 +10,7 @@ dependencies:
   flutter:
     sdk: flutter
   flutter_card_swiper: ^7.0.2
+  chatview: ^2.5.0
 
 dev_dependencies:
   flutter_test:

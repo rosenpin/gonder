@@ -30,6 +30,13 @@
         "mcp-remote",
         "https://gitmcp.io/ricardodalarme/flutter_card_swiper"
       ]
+    },
+    "chatview Docs": {
+      "command": "npx",
+      "args": [
+        "mcp-remote",
+        "https://gitmcp.io/SimformSolutionsPvtLtd/chatview"
+      ]
     }
   }
 }
