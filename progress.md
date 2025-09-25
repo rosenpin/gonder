@@ -14,3 +14,8 @@
 - Completed: Refactored app shell into feature modules, added profile data store, built editable profile screen with validation and discovery preferences, wired navigation tab.
 - Issues: None; noted future work to replace in-memory store with real persistence.
 - Next Steps: Begin Phase 2 chat redesign per plan.
+
+## 2025-09-25 — Agent: Codex (Phase 2)
+- Completed: Rebuilt chat UI to mimic Tinder layout with gradient header, match banner, stylized bubbles, avatar/timestamp logic, and modern composer.
+- Issues: Kept legacy `chatview` dependency in pubspec for now; flag for removal once data models land.
+- Next Steps: Implement discovery settings bottom sheet (Phase 3).
