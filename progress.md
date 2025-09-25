@@ -9,3 +9,8 @@
 - Completed: Updated `AGENTS.md` to require adherence to `PRD.md`, `plan.md`, and logging in `progress.md`; strengthened `plan.md` to enforce small modules and file separation.
 - Issues: None.
 - Next Steps: Await feature implementation kickoff per plan.
+
+## 2025-09-25 — Agent: Codex (Phase 1)
+- Completed: Refactored app shell into feature modules, added profile data store, built editable profile screen with validation and discovery preferences, wired navigation tab.
+- Issues: None; noted future work to replace in-memory store with real persistence.
+- Next Steps: Begin Phase 2 chat redesign per plan.
