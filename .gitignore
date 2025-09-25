@@ -47,3 +47,5 @@ app.*.map.json
 # Local design assets
 /diagrams/
 flutter_01.png
+
+.mcp.*

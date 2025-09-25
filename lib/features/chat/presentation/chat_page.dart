@@ -94,7 +94,7 @@ class _ChatPageState extends State<ChatPage> {
     return Scaffold(
       backgroundColor: Colors.grey.shade100,
       appBar: PreferredSize(
-        preferredSize: const Size.fromHeight(96),
+        preferredSize: const Size.fromHeight(82),
         child: _ChatHeader(matchDate: _matchDate),
       ),
       body: Column(
