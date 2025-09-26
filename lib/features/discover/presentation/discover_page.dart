@@ -154,7 +154,11 @@ class _DiscoverPageState extends State<DiscoverPage> {
                                 percentThresholdY,
                               ) {
                                 final profile = _profiles[index];
-                                return _ProfileCard(profile: profile);
+                                return _ProfileCard(
+                                  profile: profile,
+                                  controller: _swiperController,
+                                  profileIndex: index,
+                                );
                               },
                         ),
                         if (_isDeckFinished) const _EmptyDeckPlaceholder(),
@@ -178,22 +182,33 @@ class _DiscoverPageState extends State<DiscoverPage> {
 }
 
 class _ProfileCard extends StatelessWidget {
-  const _ProfileCard({required this.profile});
+  const _ProfileCard({
+    required this.profile,
+    required this.controller,
+    required this.profileIndex,
+  });
 
   final UserProfile profile;
+  final CardSwiperController controller;
+  final int profileIndex;
 
   void _showProfileDetails(BuildContext context) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (context) => _ProfileDetailsSheet(profile: profile),
+      builder: (context) => _ProfileDetailsSheet(
+        profile: profile,
+        controller: controller,
+        profileIndex: profileIndex,
+      ),
     );
   }
 
   @override
   Widget build(BuildContext context) {
     final photo = profile.photos.isNotEmpty ? profile.photos.first : null;
+    final safeBio = profile.bio.trim();
 
     return Material(
       elevation: 8,
@@ -203,9 +218,25 @@ class _ProfileCard extends StatelessWidget {
         fit: StackFit.expand,
         children: [
           if (photo != null)
-            Image.asset(photo, fit: BoxFit.cover)
+            Image.asset(
+              photo, 
+              fit: BoxFit.cover,
+              errorBuilder: (context, error, stackTrace) {
+                return Container(
+                  color: Colors.grey.shade300,
+                  child: const Center(
+                    child: Icon(Icons.broken_image, size: 48),
+                  ),
+                );
+              },
+            )
           else
-            Container(color: Colors.grey.shade300),
+            Container(
+              color: Colors.grey.shade300,
+              child: const Center(
+                child: Icon(Icons.person, size: 48),
+              ),
+            ),
           const DecoratedBox(
             decoration: BoxDecoration(
               gradient: LinearGradient(
@@ -242,10 +273,12 @@ class _ProfileCard extends StatelessWidget {
                           context,
                         ).textTheme.bodyMedium?.copyWith(color: Colors.white70),
                       ),
-                      if (profile.bio.isNotEmpty) ...[
+                      if (safeBio.isNotEmpty) ...[
                         const SizedBox(height: 8),
                         Text(
-                          profile.bio,
+                          safeBio.length > 100 
+                              ? '${safeBio.substring(0, 100)}...'
+                              : safeBio,
                           style: Theme.of(context).textTheme.bodySmall
                               ?.copyWith(
                                 color: Colors.white70,
@@ -261,16 +294,20 @@ class _ProfileCard extends StatelessWidget {
                 const SizedBox(width: 12),
                 GestureDetector(
                   onTap: () => _showProfileDetails(context),
-                  child: Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: Colors.white24,
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: const Icon(
-                      Icons.info_outline,
-                      color: Colors.white,
-                      size: 20,
+                  child: Semantics(
+                    label: 'View ${profile.displayName}\'s full profile',
+                    button: true,
+                    child: Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: Colors.white24,
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: const Icon(
+                        Icons.info_outline,
+                        color: Colors.white,
+                        size: 20,
+                      ),
                     ),
                   ),
                 ),
@@ -411,9 +448,37 @@ class _EmptyDeckPlaceholder extends StatelessWidget {
 }
 
 class _ProfileDetailsSheet extends StatelessWidget {
-  const _ProfileDetailsSheet({required this.profile});
+  const _ProfileDetailsSheet({
+    required this.profile,
+    required this.controller,
+    required this.profileIndex,
+  });
 
   final UserProfile profile;
+  final CardSwiperController controller;
+  final int profileIndex;
+  
+  static bool _isActionInProgress = false; // Prevent double-taps
+
+  void _handleSwipeAction(BuildContext context, CardSwiperDirection direction) {
+    if (_isActionInProgress) return; // Prevent rapid taps
+    _isActionInProgress = true;
+    
+    Navigator.of(context).pop(); // Close the modal first
+    
+    // Additional safety: Handle potential controller errors gracefully
+    try {
+      controller.swipe(direction);
+    } catch (e) {
+      // Handle potential controller errors gracefully
+      debugPrint('Swipe action failed: $e');
+    } finally {
+      // Reset flag after a brief delay
+      Future.delayed(const Duration(milliseconds: 300), () {
+        _isActionInProgress = false;
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -464,6 +529,21 @@ class _ProfileDetailsSheet extends StatelessWidget {
                                 profile.photos.first,
                                 fit: BoxFit.cover,
                                 width: double.infinity,
+                                errorBuilder: (context, error, stackTrace) {
+                                  return Container(
+                                    color: Colors.grey.shade300,
+                                    child: const Center(
+                                      child: Column(
+                                        mainAxisAlignment: MainAxisAlignment.center,
+                                        children: [
+                                          Icon(Icons.broken_image, size: 64),
+                                          SizedBox(height: 8),
+                                          Text('Image failed to load'),
+                                        ],
+                                      ),
+                                    ),
+                                  );
+                                },
                               )
                             : Container(
                                 color: Colors.grey.shade300,
@@ -525,7 +605,7 @@ class _ProfileDetailsSheet extends StatelessWidget {
                     const SizedBox(height: 24),
                     
                     // Bio section
-                    if (profile.bio.isNotEmpty) ...[
+                    if (profile.bio.trim().isNotEmpty) ...[
                       Row(
                         children: [
                           Icon(
@@ -544,6 +624,28 @@ class _ProfileDetailsSheet extends StatelessWidget {
                       const SizedBox(height: 12),
                       Container(
                         width: double.infinity,
+                        constraints: const BoxConstraints(
+                          maxHeight: 200, // Prevent extremely long bios from taking up too much space
+                        ),
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: Colors.grey.shade50,
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: Colors.grey.shade200),
+                        ),
+                        child: SingleChildScrollView(
+                          child: Text(
+                            profile.bio.trim(),
+                            style: Theme.of(context).textTheme.bodyLarge
+                                ?.copyWith(height: 1.5),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 24),
+                    ] else ...[
+                      // Show a placeholder when bio is empty
+                      Container(
+                        width: double.infinity,
                         padding: const EdgeInsets.all(16),
                         decoration: BoxDecoration(
                           color: Colors.grey.shade50,
@@ -551,9 +653,12 @@ class _ProfileDetailsSheet extends StatelessWidget {
                           border: Border.all(color: Colors.grey.shade200),
                         ),
                         child: Text(
-                          profile.bio,
+                          '${profile.displayName} hasn\'t shared their story yet.',
                           style: Theme.of(context).textTheme.bodyLarge
-                              ?.copyWith(height: 1.5),
+                              ?.copyWith(
+                                color: Colors.grey.shade500,
+                                fontStyle: FontStyle.italic,
+                              ),
                         ),
                       ),
                       const SizedBox(height: 24),
@@ -582,10 +687,10 @@ class _ProfileDetailsSheet extends StatelessWidget {
                         vertical: 8,
                       ),
                       decoration: BoxDecoration(
-                        color: Theme.of(context).colorScheme.primary.withOpacity(0.1),
+                        color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(20),
                         border: Border.all(
-                          color: Theme.of(context).colorScheme.primary.withOpacity(0.3),
+                          color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.3),
                         ),
                       ),
                       child: Text(
@@ -603,9 +708,7 @@ class _ProfileDetailsSheet extends StatelessWidget {
                       children: [
                         Expanded(
                           child: OutlinedButton.icon(
-                            onPressed: () {
-                              Navigator.of(context).pop();
-                            },
+                            onPressed: () => _handleSwipeAction(context, CardSwiperDirection.left),
                             icon: const Icon(Icons.close, color: Colors.red),
                             label: const Text(
                               'Pass',
@@ -620,10 +723,7 @@ class _ProfileDetailsSheet extends StatelessWidget {
                         const SizedBox(width: 16),
                         Expanded(
                           child: FilledButton.icon(
-                            onPressed: () {
-                              Navigator.of(context).pop();
-                              // Here you could trigger a like action
-                            },
+                            onPressed: () => _handleSwipeAction(context, CardSwiperDirection.right),
                             icon: const Icon(Icons.favorite),
                             label: const Text('Like'),
                             style: FilledButton.styleFrom(
