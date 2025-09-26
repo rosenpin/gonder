@@ -154,7 +154,11 @@ class _DiscoverPageState extends State<DiscoverPage> {
                                 percentThresholdY,
                               ) {
                                 final profile = _profiles[index];
-                                return _ProfileCard(profile: profile);
+                                return _ProfileCard(
+                                  profile: profile,
+                                  controller: _swiperController,
+                                  profileIndex: index,
+                                );
                               },
                         ),
                         if (_isDeckFinished) const _EmptyDeckPlaceholder(),
@@ -178,13 +182,33 @@ class _DiscoverPageState extends State<DiscoverPage> {
 }
 
 class _ProfileCard extends StatelessWidget {
-  const _ProfileCard({required this.profile});
+  const _ProfileCard({
+    required this.profile,
+    required this.controller,
+    required this.profileIndex,
+  });
 
   final UserProfile profile;
+  final CardSwiperController controller;
+  final int profileIndex;
+
+  void _showProfileDetails(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => _ProfileDetailsSheet(
+        profile: profile,
+        controller: controller,
+        profileIndex: profileIndex,
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
     final photo = profile.photos.isNotEmpty ? profile.photos.first : null;
+    final safeBio = profile.bio.trim();
 
     return Material(
       elevation: 8,
@@ -194,9 +218,25 @@ class _ProfileCard extends StatelessWidget {
         fit: StackFit.expand,
         children: [
           if (photo != null)
-            Image.asset(photo, fit: BoxFit.cover)
+            Image.asset(
+              photo, 
+              fit: BoxFit.cover,
+              errorBuilder: (context, error, stackTrace) {
+                return Container(
+                  color: Colors.grey.shade300,
+                  child: const Center(
+                    child: Icon(Icons.broken_image, size: 48),
+                  ),
+                );
+              },
+            )
           else
-            Container(color: Colors.grey.shade300),
+            Container(
+              color: Colors.grey.shade300,
+              child: const Center(
+                child: Icon(Icons.person, size: 48),
+              ),
+            ),
           const DecoratedBox(
             decoration: BoxDecoration(
               gradient: LinearGradient(
@@ -214,27 +254,63 @@ class _ProfileCard extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      profile.displayName,
-                      style: Theme.of(context).textTheme.headlineSmall
-                          ?.copyWith(
-                            color: Colors.white,
-                            fontWeight: FontWeight.bold,
-                          ),
-                    ),
-                    Text(
-                      '${profile.age} • ${profile.city}',
-                      style: Theme.of(
-                        context,
-                      ).textTheme.bodyMedium?.copyWith(color: Colors.white70),
-                    ),
-                  ],
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        profile.displayName,
+                        style: Theme.of(context).textTheme.headlineSmall
+                            ?.copyWith(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                            ),
+                      ),
+                      Text(
+                        '${profile.age} • ${profile.city}',
+                        style: Theme.of(
+                          context,
+                        ).textTheme.bodyMedium?.copyWith(color: Colors.white70),
+                      ),
+                      if (safeBio.isNotEmpty) ...[
+                        const SizedBox(height: 8),
+                        Text(
+                          safeBio.length > 100 
+                              ? '${safeBio.substring(0, 100)}...'
+                              : safeBio,
+                          style: Theme.of(context).textTheme.bodySmall
+                              ?.copyWith(
+                                color: Colors.white70,
+                                fontStyle: FontStyle.italic,
+                              ),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ],
+                    ],
+                  ),
                 ),
-                const Icon(Icons.info_outline, color: Colors.white),
+                const SizedBox(width: 12),
+                GestureDetector(
+                  onTap: () => _showProfileDetails(context),
+                  child: Semantics(
+                    label: 'View ${profile.displayName}\'s full profile',
+                    button: true,
+                    child: Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: Colors.white24,
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: const Icon(
+                        Icons.info_outline,
+                        color: Colors.white,
+                        size: 20,
+                      ),
+                    ),
+                  ),
+                ),
               ],
             ),
           ),
@@ -367,6 +443,305 @@ class _EmptyDeckPlaceholder extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+class _ProfileDetailsSheet extends StatelessWidget {
+  const _ProfileDetailsSheet({
+    required this.profile,
+    required this.controller,
+    required this.profileIndex,
+  });
+
+  final UserProfile profile;
+  final CardSwiperController controller;
+  final int profileIndex;
+  
+  static bool _isActionInProgress = false; // Prevent double-taps
+
+  void _handleSwipeAction(BuildContext context, CardSwiperDirection direction) {
+    if (_isActionInProgress) return; // Prevent rapid taps
+    _isActionInProgress = true;
+    
+    Navigator.of(context).pop(); // Close the modal first
+    
+    // Additional safety: Handle potential controller errors gracefully
+    try {
+      controller.swipe(direction);
+    } catch (e) {
+      // Handle potential controller errors gracefully
+      debugPrint('Swipe action failed: $e');
+    } finally {
+      // Reset flag after a brief delay
+      Future.delayed(const Duration(milliseconds: 300), () {
+        _isActionInProgress = false;
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return DraggableScrollableSheet(
+      initialChildSize: 0.85,
+      minChildSize: 0.5,
+      maxChildSize: 0.95,
+      builder: (context, scrollController) {
+        return Container(
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+          ),
+          child: Column(
+            children: [
+              // Drag handle
+              Container(
+                margin: const EdgeInsets.symmetric(vertical: 12),
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade300,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              Expanded(
+                child: ListView(
+                  controller: scrollController,
+                  padding: const EdgeInsets.symmetric(horizontal: 24),
+                  children: [
+                    // Profile photo
+                    Container(
+                      height: 400,
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(16),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.1),
+                            blurRadius: 10,
+                            offset: const Offset(0, 4),
+                          ),
+                        ],
+                      ),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(16),
+                        child: profile.photos.isNotEmpty
+                            ? Image.asset(
+                                profile.photos.first,
+                                fit: BoxFit.cover,
+                                width: double.infinity,
+                                errorBuilder: (context, error, stackTrace) {
+                                  return Container(
+                                    color: Colors.grey.shade300,
+                                    child: const Center(
+                                      child: Column(
+                                        mainAxisAlignment: MainAxisAlignment.center,
+                                        children: [
+                                          Icon(Icons.broken_image, size: 64),
+                                          SizedBox(height: 8),
+                                          Text('Image failed to load'),
+                                        ],
+                                      ),
+                                    ),
+                                  );
+                                },
+                              )
+                            : Container(
+                                color: Colors.grey.shade300,
+                                child: const Center(
+                                  child: Icon(Icons.person, size: 64),
+                                ),
+                              ),
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+                    
+                    // Name and basic info
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        Text(
+                          profile.displayName,
+                          style: Theme.of(context).textTheme.headlineMedium
+                              ?.copyWith(fontWeight: FontWeight.bold),
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          profile.age.toString(),
+                          style: Theme.of(context).textTheme.headlineSmall
+                              ?.copyWith(color: Colors.grey.shade600),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    
+                    // Job title
+                    if (profile.jobTitle.isNotEmpty) ...[
+                      Row(
+                        children: [
+                          Icon(Icons.work_outline, size: 18, color: Colors.grey.shade600),
+                          const SizedBox(width: 8),
+                          Text(
+                            profile.jobTitle,
+                            style: Theme.of(context).textTheme.bodyLarge
+                                ?.copyWith(color: Colors.grey.shade700),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                    ],
+                    
+                    // Location
+                    Row(
+                      children: [
+                        Icon(Icons.location_on_outlined, size: 18, color: Colors.grey.shade600),
+                        const SizedBox(width: 8),
+                        Text(
+                          '${profile.city} • ${profile.distanceKm}km away',
+                          style: Theme.of(context).textTheme.bodyLarge
+                              ?.copyWith(color: Colors.grey.shade700),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 24),
+                    
+                    // Bio section
+                    if (profile.bio.trim().isNotEmpty) ...[
+                      Row(
+                        children: [
+                          Icon(
+                            Icons.person_outline,
+                            size: 20,
+                            color: Theme.of(context).colorScheme.primary,
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            'About ${profile.displayName}',
+                            style: Theme.of(context).textTheme.titleMedium
+                                ?.copyWith(fontWeight: FontWeight.w600),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+                      Container(
+                        width: double.infinity,
+                        constraints: const BoxConstraints(
+                          maxHeight: 200, // Prevent extremely long bios from taking up too much space
+                        ),
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: Colors.grey.shade50,
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: Colors.grey.shade200),
+                        ),
+                        child: SingleChildScrollView(
+                          child: Text(
+                            profile.bio.trim(),
+                            style: Theme.of(context).textTheme.bodyLarge
+                                ?.copyWith(height: 1.5),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 24),
+                    ] else ...[
+                      // Show a placeholder when bio is empty
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: Colors.grey.shade50,
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: Colors.grey.shade200),
+                        ),
+                        child: Text(
+                          '${profile.displayName} hasn\'t shared their story yet.',
+                          style: Theme.of(context).textTheme.bodyLarge
+                              ?.copyWith(
+                                color: Colors.grey.shade500,
+                                fontStyle: FontStyle.italic,
+                              ),
+                        ),
+                      ),
+                      const SizedBox(height: 24),
+                    ],
+                    
+                    // Interests section
+                    Row(
+                      children: [
+                        Icon(
+                          Icons.favorite_outline,
+                          size: 20,
+                          color: Theme.of(context).colorScheme.primary,
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          'Looking For',
+                          style: Theme.of(context).textTheme.titleMedium
+                              ?.copyWith(fontWeight: FontWeight.w600),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 8,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(
+                          color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.3),
+                        ),
+                      ),
+                      child: Text(
+                        profile.lookingFor.label,
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          color: Theme.of(context).colorScheme.primary,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 32),
+                    
+                    // Action buttons
+                    Row(
+                      children: [
+                        Expanded(
+                          child: OutlinedButton.icon(
+                            onPressed: () => _handleSwipeAction(context, CardSwiperDirection.left),
+                            icon: const Icon(Icons.close, color: Colors.red),
+                            label: const Text(
+                              'Pass',
+                              style: TextStyle(color: Colors.red),
+                            ),
+                            style: OutlinedButton.styleFrom(
+                              side: const BorderSide(color: Colors.red),
+                              padding: const EdgeInsets.symmetric(vertical: 12),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: FilledButton.icon(
+                            onPressed: () => _handleSwipeAction(context, CardSwiperDirection.right),
+                            icon: const Icon(Icons.favorite),
+                            label: const Text('Like'),
+                            style: FilledButton.styleFrom(
+                              backgroundColor: Colors.green,
+                              padding: const EdgeInsets.symmetric(vertical: 12),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 24),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 }
